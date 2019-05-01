@@ -16,6 +16,8 @@
   :depends-on ("series"
                "dexador"
                "sha1-util"
+               :quri
+               :jsown
                )
   :components ((:module "src"
                 :components
