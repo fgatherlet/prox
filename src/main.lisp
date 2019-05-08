@@ -7,6 +7,7 @@
                               (string target)))
                        (sleep-sec 0.5)
                        (cachep t)
+                       (referer url)
                        )
   "
 return: content code.
@@ -17,7 +18,7 @@ internal error code is negavie number.
   (let* ((quri (quri:uri url))
          (ext (string-downcase (or (pathname-type (make-pathname :defaults (quri:uri-path (quri:uri quri)))) "html"))))
     (let* ((fetcher (etypecase target
-                      (string   (lambda () (dex:get target)))
+                      (string   (lambda () (dex:get target :headers `((:referer . ,referer)))))
                       (function target)))
            (sha1 (sha1-as-hex url))
            (sha1-pre (subseq sha1 0 2))
