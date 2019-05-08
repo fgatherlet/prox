@@ -5,7 +5,8 @@
 (defun fetch (target &key
                        (url (etypecase target
                               (string target)))
-                       (sleep-sec 0.0)
+                       (sleep-sec 0.5)
+                       (cachep t)
                        )
   "
 return: content code.
@@ -25,8 +26,10 @@ internal error code is negavie number.
            (cache-path-meta (make-pathname :defaults *cache-root* :name (format nil "~a/~a" sha1-pre sha1-post)))
            (cache-path (make-pathname :defaults *cache-root* :name (format nil "~a/~a.~a" sha1-pre sha1-post ext))))
       
-      (when (and (probe-file cache-path-meta)
-                 (probe-file cache-path))
+      (when (and
+             cachep
+             (probe-file cache-path-meta)
+             (probe-file cache-path))
         (let ((meta (collect-first (scan-file cache-path-meta #'read)))
               content)
           (if (jsown:val meta "octetp")
@@ -34,12 +37,14 @@ internal error code is negavie number.
                                                                    (scan-stream is #'read-byte))))
             (setf content (collect 'string (scan-file cache-path #'read-char))))
           (return-from fetch (values content 200 meta))))
-      
+
+
       (multiple-value-bind (pathspec created)
           ;; ensure-directories-exist is buggy? if argument type is pathname, directory not created...
           (ensure-directories-exist (princ-to-string cache-path-directory)))
       
       (let ((meta '(:obj)))
+        (setf (jsown:val meta "url") url)
         (multiple-value-bind (content code)
 
             (handler-case
