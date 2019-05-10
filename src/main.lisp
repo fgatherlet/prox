@@ -2,6 +2,9 @@
 
 (defvar *cache-root* #p"/tmp/prox-cache/")
 
+(defun ts ()
+  (- (get-universal-time) #.(encode-universal-time 0 0 0 1 1 1970 0)))
+
 #.`(progn
      ,@(collect (mapping ((level (scan '(:d :i :w :e))))
                   `(defun ,(intern (format nil "LOG~a" level)) (&rest rest)
@@ -60,6 +63,7 @@ internal error code is negavie number.
       
       (let ((meta (list :obj)))
         (setf (jsown:val meta "url") url)
+        (setf (jsown:val meta "ts") (ts))
         (logd "funcall fetcher from")
         (multiple-value-bind (content code)
             (handler-case
