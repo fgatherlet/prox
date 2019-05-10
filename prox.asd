@@ -18,6 +18,7 @@
                "sha1-util"
                :quri
                :jsown
+               :cl-ppcre
                )
   :components ((:module "src"
                 :components

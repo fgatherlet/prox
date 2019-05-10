@@ -2,6 +2,18 @@
 
 (defvar *cache-root* #p"/tmp/prox-cache/")
 
+#.`(progn
+     ,@(collect (mapping ((level (scan '(:d :i :w :e))))
+                  `(defun ,(intern (format nil "LOG~a" level)) (&rest rest)
+                     "logger."
+                     (format t "~&prox ~a " ,level)
+                     ;;(apply #'format t rest)
+                     (let* ((tmp (apply #'format nil rest)))
+                       (setq tmp (ppcre:regex-replace-all "\\s+" tmp " "))
+                       (princ tmp))
+                     (princ #\newline)
+                     (finish-output *standard-output*)))))
+
 (defun fetch (target &key
                        (url (etypecase target
                               (string target)))
@@ -18,7 +30,9 @@ internal error code is negavie number.
   (let* ((quri (quri:uri url))
          (ext (string-downcase (or (pathname-type (make-pathname :defaults (quri:uri-path (quri:uri quri)))) "html"))))
     (let* ((fetcher (etypecase target
-                      (string   (lambda () (dex:get target :headers `((:referer . ,referer)))))
+                      (string   (lambda ()
+                                  (dex:get target :headers `((:referer . ,referer))
+                                           )))
                       (function target)))
            (sha1 (sha1-as-hex url))
            (sha1-pre (subseq sha1 0 2))
@@ -44,15 +58,21 @@ internal error code is negavie number.
           ;; ensure-directories-exist is buggy? if argument type is pathname, directory not created...
           (ensure-directories-exist (princ-to-string cache-path-directory)))
       
-      (let ((meta '(:obj)))
+      (let ((meta (list :obj)))
         (setf (jsown:val meta "url") url)
+        (logd "funcall fetcher from")
         (multiple-value-bind (content code)
-
             (handler-case
                 (funcall fetcher)
               (dex:http-request-failed (e) (values (dex:response-body e) (dex:response-status e)))
               (error (e) (values "" -100 meta)))
+          (logd "funcall fetcher to")
 
+          (unless (= 200 code)
+            (logd "prox-get-content failed url:~a code:~a" url code)
+            (return-from fetch (values content code)))
+
+          (setf (jsown:val meta "code") code)
           (cond
             ((stringp content)
              (setf (jsown:val meta "octetp") nil)
@@ -67,5 +87,5 @@ internal error code is negavie number.
           (with-open-file (os cache-path-meta :direction :output :if-exists :supersede)
             (write meta :stream os))
           (sleep sleep-sec)
-          (values content 200 meta))))))
+          (values content code meta))))))
 
