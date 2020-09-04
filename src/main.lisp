@@ -20,9 +20,10 @@
 (defun fetch (target &key
                        (url (etypecase target
                               (string target)))
-                       (sleep-sec 0.5)
+                       (sleep-sec 1.0)
                        (cachep t)
                        (referer url)
+                       cookie-jar
                        )
   "
 return: content code.
@@ -34,7 +35,9 @@ internal error code is negavie number.
          (ext (string-downcase (or (pathname-type (make-pathname :defaults (quri:uri-path (quri:uri quri)))) "html"))))
     (let* ((fetcher (etypecase target
                       (string   (lambda ()
-                                  (dex:get target :headers `((:referer . ,referer))
+                                  (dex:get target
+                                           :headers `((:referer . ,referer))
+                                           :cookie-jar cookie-jar
                                            )))
                       (function target)))
            (sha1 (sha1-as-hex url))
